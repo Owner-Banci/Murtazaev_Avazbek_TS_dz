@@ -1,0 +1,218 @@
+//EASY
+
+type MyPick<T, K extends keyof T> = { [P in K]: T[P]; };
+
+type NOfArray<ArrayObj extends any[], N extends number> = ArrayObj[N];
+
+type Unshift<ArrayType extends any[], Elem> = [Elem, ...ArrayType];
+
+type MyExclude<T, U> = T extends U ? never : T;
+
+//MyPick
+type ExampleType = { a: string; b: number; c: boolean };
+type PickedType = MyPick<ExampleType, 'a' | 'c'>; 
+
+const exampleObj: PickedType = { a: "Hello, World", c: true };
+console.log(exampleObj); 
+
+//NOfArray
+type ArrayExample = [number, string, boolean];
+type SecondElementType = NOfArray<ArrayExample, 1>; 
+
+const exampleArray: ArrayExample = [42, "second", true];
+const secondElement: SecondElementType = exampleArray[1];
+console.log(secondElement); 
+
+//Unshift
+type UnshiftedArray = Unshift<[number, string], boolean>; 
+
+const exampleUnshifted: UnshiftedArray = [true, 42, "hello"];
+console.log(exampleUnshifted); 
+
+//MyExclude
+type ExcludedType = MyExclude<'a' | 'b' | 'c', 'a' | 'd'>; 
+
+const checkExclude = (value: ExcludedType) => {
+  console.log(value); 
+};
+
+checkExclude('b'); 
+checkExclude('c'); 
+
+//MIDDLE
+
+type DeepPartial<T> = {
+  [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K];
+};
+
+type MyCapitalize<T extends string> = T extends `${infer F}${infer R}`
+  ? `${Uppercase<F>}${R}`
+  : T;
+
+type DeepMutable<T> = {
+  -readonly [K in keyof T]: T[K] extends object ? DeepMutable<T[K]> : T[K];
+};
+
+type ParseURLParams<StringElem extends string> = StringElem extends `${infer _Start}:${infer Param}/${infer Rest}`
+  ? Param | ParseURLParams<`/${Rest}`>
+  : StringElem extends `${infer _Start}:${infer Param}`
+  ? Param
+  : never;
+
+// Примеры использования
+
+//DeepPartial
+type User = {
+  id: number;
+  name: string;
+  address: {
+    street: string;
+    city: string;
+  };
+};
+
+type PartialUser = DeepPartial<User>;
+
+const partialUser: PartialUser = {
+  name: "Avazbek",
+  address: {
+    city: "Moscow",
+  },
+};
+
+console.log(partialUser); 
+
+//MyCapitalize
+type capitalizedStr = MyCapitalize<"hello world">;
+
+const exampleString: capitalizedStr = "Hello world";
+console.log(exampleString);
+
+//DeepMutable
+type ReadonlyUser = {
+  readonly id: number;
+  readonly name: string;
+  readonly address: {
+    readonly street: string;
+    readonly city: string;
+  };
+};
+
+type MutableUser = DeepMutable<ReadonlyUser>;
+
+const user: MutableUser = {
+  id: 1,
+  name: "Avazbek",
+  address: {
+    street: "Krasnaya ploshad",
+    city: "Moscow",
+  },
+};
+
+user.id = 2;
+user.address.city = "Moscow"
+console.log(user);
+
+//ParseURLParams
+type Params = ParseURLParams<'posts/:id/:user/details/:detailId'>;
+
+const exampleParam: Params = "id"; 
+const exampleParam2: Params = "user"; 
+const exampleParam3: Params = "detailId"; 
+
+console.log(exampleParam, exampleParam2, exampleParam3);
+
+//HARD
+
+type CamelCase<S extends string> = S extends `${infer Left}_${infer Right}`
+  ? `${Left}${Capitalize<CamelCase<Right>>}`
+  : S;
+
+type Camelize<T> = T extends object
+  ? {
+      [K in keyof T as CamelCase<K & string>]: T[K] extends object ? Camelize<T[K]> : T[K];
+    }
+  : T;
+
+type SplitPath<S extends string> = S extends `${infer Head}.${infer Tail}`
+  ? [Head, ...SplitPath<Tail>]
+  : [S];
+
+type DeepPick<T, Paths extends string> = UnionToIntersection<
+  Paths extends any
+    ? SplitPath<Paths> extends [infer Head, ...infer Tail]
+      ? Head extends keyof T
+        ? { [K in Head]: Tail extends string[] ? DeepPick<T[Head], JoinPaths<Tail>> : T[Head] }
+        : never
+      : never
+    : never
+>;
+
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+  k: infer I
+) => void
+  ? I
+  : never;
+
+type JoinPaths<T extends string[]> = T extends [infer F, ...infer R]
+  ? F extends string
+    ? R extends string[]
+      ? `${F}.${JoinPaths<R>}`
+      : F
+    : never
+  : '';
+
+// Примеры использования
+
+//Camelize
+type ExampleSnakeCase = {
+  first_name: string;
+  last_name: string;
+  user_address: {
+    street_name: string;
+    city_name: string;
+  };
+};
+
+type Camelized = Camelize<ExampleSnakeCase>;
+
+const exampleObj1: Camelized = {
+  firstName: "Avazbek",
+  lastName: "Murtazaev",
+  userAddress: {
+    streetName: "Krasnaya ploshad",
+    cityName: "Moscow",
+  },
+};
+
+console.log(exampleObj); 
+
+//DeepPick
+type ExampleUser = {
+  id: number;
+  name: string;
+  address: {
+    street: string;
+    city: string;
+    country: {
+      name: string;
+      code: string;
+    };
+  };
+  posts: { title: string; content: string }[];
+};
+
+type PickedUser = DeepPick<ExampleUser, 'name' | 'address.street' | 'address.country.name'>;
+
+const exampleUser: PickedUser = {
+  name: "Avazbek",
+  address: {
+    street: "Krasnaya ploshad",
+    country: {
+      name: "Russia",
+    },
+  },
+};
+
+console.log(exampleUser); 
+
